@@ -1,0 +1,4 @@
+.claude
+campaigns.json
+__pycache__/
+*.pyc

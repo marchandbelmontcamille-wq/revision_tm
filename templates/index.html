@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Accueil{% endblock %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
+    <h1 class="page-title" style="margin-bottom: 0;">Campagnes de révision</h1>
+    <a href="/campaigns/new" class="btn">+ Nouvelle campagne</a>
+</div>
+
+{% if campaigns %}
+<table>
+    <thead>
+        <tr>
+            <th>Nom</th>
+            <th>Créée le</th>
+            <th>Bus</th>
+            <th>Avancement</th>
+            <th>Statut</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in campaigns %}
+        {% set done = c.buses|selectattr("done")|list|length %}
+        {% set total = c.buses|length %}
+        {% set pct = (done / total * 100)|int if total > 0 else 0 %}
+        <tr>
+            <td><strong>{{ c.name }}</strong></td>
+            <td>{{ c.created }}</td>
+            <td>{{ total }}</td>
+            <td>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div class="bar-track" style="width: 100px;">
+                        <div class="bar-fill" style="width: {{ pct }}%; background: {% if pct == 100 %}var(--success){% elif pct > 50 %}var(--primary){% else %}var(--warning){% endif %};"></div>
+                    </div>
+                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ done }}/{{ total }}</span>
+                </div>
+            </td>
+            <td>
+                {% if c.status == "completed" %}
+                <span class="badge badge-success">Terminée</span>
+                {% else %}
+                <span class="badge badge-warning">En cours</span>
+                {% endif %}
+            </td>
+            <td><a href="/campaigns/{{ c.id }}" class="btn">Gérer</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="card" style="text-align: center; padding: 50px;">
+    <p style="color: var(--text-muted); margin-bottom: 15px;">Aucune campagne de révision</p>
+    <a href="/campaigns/new" class="btn">Créer une campagne</a>
+</div>
+{% endif %}
+{% endblock %}

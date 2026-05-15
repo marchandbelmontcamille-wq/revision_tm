@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Nouvelle campagne{% endblock %}
+{% block content %}
+<h1 class="page-title">Nouvelle campagne de révision</h1>
+
+<div class="panel" style="max-width: 500px;">
+    <h3>Paramètres</h3>
+    <form method="post" action="/campaigns/new" enctype="multipart/form-data">
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Nom de la campagne</label>
+            <input type="text" name="name" placeholder="Ex: Révision printemps 2026" style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+        </div>
+        <div style="margin-bottom: 15px;">
+            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Fichier CSV (export Transport Manager)</label>
+            <input type="file" name="csv_file" accept=".csv" required style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+        </div>
+        <div style="margin-bottom: 20px;">
+            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Horizon (jours)</label>
+            <select name="horizon" style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+                <option value="30">30 jours</option>
+                <option value="60">60 jours</option>
+                <option value="90" selected>90 jours</option>
+                <option value="180">180 jours</option>
+                <option value="365">1 an</option>
+            </select>
+            <small style="color: var(--text-muted); display: block; margin-top: 5px;">Inclut les bus dont la révision est dans ce délai ou déjà dépassée</small>
+        </div>
+        <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 1rem;">Créer la campagne</button>
+    </form>
+</div>
+{% endblock %}

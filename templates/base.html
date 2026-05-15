@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TM Révisions — {% block title %}Accueil{% endblock %}</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <h1>TM Révisions</h1>
+            <small>Campagnes de révision</small>
+        </div>
+        <nav>
+            <a href="/" class="{% if request.path == '/' %}active{% endif %}">Accueil</a>
+            <a href="/campaigns/new" class="{% if '/campaigns/new' in request.path %}active{% endif %}">Nouvelle campagne</a>
+        </nav>
+    </aside>
+    <main class="main">
+        {% block content %}{% endblock %}
+    </main>
+</div>
+</body>
+</html>

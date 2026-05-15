@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}{{ campaign.name }}{% endblock %}
+{% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div>
+        <a href="/" style="color: var(--text-muted); font-size: 0.85rem;">← Retour</a>
+        <h1 class="page-title" style="margin-top: 5px; margin-bottom: 0;">{{ campaign.name }}</h1>
+    </div>
+    <form method="post" action="/campaigns/{{ campaign.id }}/delete" onsubmit="return confirm('Supprimer cette campagne ?');">
+        <button type="submit" class="btn" style="background: var(--danger);">Supprimer</button>
+    </form>
+</div>
+
+<div class="cards" style="margin-bottom: 20px;">
+    <div class="card card-stat blue">
+        <div class="value">{{ total }}</div>
+        <div class="label">Bus</div>
+    </div>
+    <div class="card card-stat green">
+        <div class="value">{{ done_count }}</div>
+        <div class="label">Révisés</div>
+    </div>
+    <div class="card card-stat yellow">
+        <div class="value">{{ total - done_count }}</div>
+        <div class="label">Restants</div>
+    </div>
+    <div class="card card-stat">
+        <div class="value" style="color: {% if progress == 100 %}var(--success){% else %}var(--primary){% endif %};">{{ progress }}%</div>
+        <div class="label">Avancement</div>
+    </div>
+</div>
+
+<div class="card" style="margin-bottom: 25px; padding: 12px 20px;">
+    <div class="bar-track" style="height: 10px; border-radius: 5px;">
+        <div class="bar-fill" style="width: {{ progress }}%; height: 100%; border-radius: 5px; background: {% if progress == 100 %}var(--success){% else %}var(--primary){% endif %};"></div>
+    </div>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>N° Parc</th>
+            <th>Bus</th>
+            <th>Type</th>
+            <th>Révision prévue</th>
+            <th>Délai</th>
+            <th>Révisé</th>
+            <th>Fait le</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for entry in campaign.buses %}
+        <tr style="{% if entry.done %}opacity: 0.5;{% endif %}">
+            <td><strong>{{ entry.num_parc }}</strong></td>
+            <td>{{ entry.marque }} {{ entry.modele }}</td>
+            <td>{{ entry.type }}</td>
+            <td>{{ entry.revision_prevue or "—" }}</td>
+            <td>
+                {% if entry.delta is not none %}
+                    {% if entry.delta < 0 %}
+                    <span class="badge badge-danger">{{ entry.delta|abs }}j retard</span>
+                    {% elif entry.delta <= 30 %}
+                    <span class="badge badge-warning">{{ entry.delta }}j</span>
+                    {% else %}
+                    <span class="badge badge-yellow">{{ entry.delta }}j</span>
+                    {% endif %}
+                {% else %}
+                —
+                {% endif %}
+            </td>
+            <td>
+                {% if entry.done %}
+                <span class="badge badge-success">OUI</span>
+                {% else %}
+                <span class="badge" style="background: var(--surface2); color: var(--text-muted);">NON</span>
+                {% endif %}
+            </td>
+            <td>{{ entry.done_date or "—" }}</td>
+            <td>
+                <form method="post" action="/campaigns/{{ campaign.id }}/toggle/{{ entry.num_parc }}" style="display: inline;">
+                    {% if entry.done %}
+                    <button type="submit" class="btn" style="background: var(--surface2);">Annuler</button>
+                    {% else %}
+                    <button type="submit" class="btn" style="background: var(--success);">Révisé</button>
+                    {% endif %}
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
