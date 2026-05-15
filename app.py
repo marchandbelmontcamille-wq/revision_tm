@@ -1,11 +1,35 @@
 import csv
 import io
 import json
+import os
 from datetime import datetime, date
-from flask import Flask, render_template, request, redirect, url_for
+from functools import wraps
+from flask import Flask, render_template, request, redirect, url_for, session
 import storage
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
+APP_PASSWORD = os.environ.get("APP_PASSWORD", "admin")
+
+
+def login_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    error = None
+    if request.method == "POST":
+        if request.form.get("password") == APP_PASSWORD:
+            session["logged_in"] = True
+            return redirect(url_for("index"))
+        error = "Mot de passe incorrect"
+    return render_template("login.html", error=error)
 
 
 def parse_csv(content):
@@ -53,7 +77,14 @@ def filter_buses_for_revision(buses, horizon_days):
     return result
 
 
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+
 @app.route("/")
+@login_required
 def index():
     campaigns = storage.load_campaigns()
     campaigns.sort(key=lambda c: c["created"], reverse=True)
@@ -61,6 +92,7 @@ def index():
 
 
 @app.route("/campaigns/new", methods=["GET", "POST"])
+@login_required
 def campaign_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
@@ -103,6 +135,7 @@ def campaign_new():
 
 
 @app.route("/campaigns/<int:campaign_id>")
+@login_required
 def campaign_detail(campaign_id):
     campaigns = storage.load_campaigns()
     campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
@@ -116,6 +149,7 @@ def campaign_detail(campaign_id):
 
 
 @app.route("/campaigns/<int:campaign_id>/toggle/<num_parc>", methods=["POST"])
+@login_required
 def campaign_toggle(campaign_id, num_parc):
     campaigns = storage.load_campaigns()
     for campaign in campaigns:
@@ -135,6 +169,7 @@ def campaign_toggle(campaign_id, num_parc):
 
 
 @app.route("/campaigns/<int:campaign_id>/delete", methods=["POST"])
+@login_required
 def campaign_delete(campaign_id):
     campaigns = [c for c in storage.load_campaigns() if c["id"] != campaign_id]
     storage.save_campaigns(campaigns)
