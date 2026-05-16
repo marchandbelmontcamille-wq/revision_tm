@@ -7,19 +7,21 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-<div style="min-height: 100vh; display: flex; align-items: center; justify-content: center;">
-    <div class="card" style="width: 350px; padding: 40px;">
-        <h1 style="text-align: center; color: var(--primary); margin-bottom: 5px;">TM Révisions</h1>
-        <p style="text-align: center; color: var(--text-muted); margin-bottom: 30px; font-size: 0.85rem;">Connexion requise</p>
-        {% if error %}
-        <div style="background: rgba(239,68,68,0.15); border: 1px solid var(--danger); border-radius: 6px; padding: 10px; margin-bottom: 15px; text-align: center; color: var(--danger); font-size: 0.85rem;">
-            {{ error }}
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-brand">
+            <h1>// TM Révisions</h1>
+            <p>Authentification requise</p>
         </div>
+        {% if error %}
+        <div class="login-error">{{ error }}</div>
         {% endif %}
         <form method="post" action="/login">
-            <input type="password" name="password" placeholder="Mot de passe" autofocus
-                   style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 12px; border-radius: 6px; font-size: 1rem; margin-bottom: 15px;">
-            <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 1rem;">Se connecter</button>
+            <div class="form-group">
+                <label class="form-label">Mot de passe</label>
+                <input type="password" name="password" class="form-input" placeholder="Entrez le mot de passe" autofocus>
+            </div>
+            <button type="submit" class="btn btn-primary form-submit">Accéder au système</button>
         </form>
     </div>
 </div>

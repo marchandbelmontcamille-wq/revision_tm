@@ -1,38 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Nouvelle campagne{% endblock %}
+{% block title %}Nouveau planning{% endblock %}
 {% block content %}
-<h1 class="page-title">Nouvelle campagne</h1>
+<div class="breadcrumb"><a href="/">Campagnes</a> / Nouveau planning</div>
+<h1 class="page-title">Nouveau planning</h1>
 
-<div class="panel" style="max-width: 550px;">
+<div class="panel" style="max-width: 520px;">
     <form method="post" action="/campaigns/new" enctype="multipart/form-data">
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Nom de la campagne</label>
-            <input type="text" name="name" placeholder="Ex: Campagne été 2026" style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+        <div class="form-group">
+            <label class="form-label">Nom de la campagne</label>
+            <input type="text" name="name" class="form-input" placeholder="Ex: Campagne été 2026">
         </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Fichier CSV (export Transport Manager)</label>
-            <input type="file" name="csv_file" accept=".csv" required style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+        <div class="form-group">
+            <label class="form-label">Fichier CSV — Export Transport Manager</label>
+            <input type="file" name="csv_file" accept=".csv" required class="form-input">
         </div>
-        <div style="margin-bottom: 15px;">
-            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Date de début</label>
-            <input type="date" name="start_date" style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
+        <div class="form-group">
+            <label class="form-label">Date de début</label>
+            <input type="date" name="start_date" class="form-input">
         </div>
-        <div style="margin-bottom: 20px;">
-            <label style="display: block; color: var(--text-muted); font-size: 0.85rem; margin-bottom: 5px;">Bus de remplacement (numéros séparés par des virgules)</label>
-            <input type="text" name="replacement_buses" placeholder="Ex: R01, R02, R03" style="width: 100%; background: var(--surface2); border: 1px solid var(--surface2); color: var(--text); padding: 10px 12px; border-radius: 6px; font-size: 0.9rem;">
-            <small style="color: var(--text-muted); display: block; margin-top: 5px;">Chaque bus de remplacement permet de traiter un véhicule à la fois en parallèle</small>
+        <div class="form-group">
+            <label class="form-label">Bus de remplacement</label>
+            <input type="text" name="replacement_buses" class="form-input" placeholder="Ex: R01, R02, R03">
+            <p class="form-hint">Numéros séparés par des virgules. Chaque bus = 1 slot de travaux en parallèle.</p>
         </div>
-        <button type="submit" class="btn" style="width: 100%; padding: 12px; font-size: 1rem;">Générer le planning</button>
+        <button type="submit" class="btn btn-primary form-submit">Générer le planning</button>
     </form>
 </div>
 
-<div class="panel" style="margin-top: 20px; max-width: 550px;">
-    <h3>Comment ça marche</h3>
-    <p style="color: var(--text-muted); font-size: 0.85rem; line-height: 1.6;">
-        <strong>Phase 1 — Technique :</strong> Les bus avec un état technique &lt; 80% sont rénovés en priorité (du pire au meilleur).<br>
-        <strong>Phase 2 — Intérieur :</strong> Les bus avec un état intérieur &lt; 80% sont traités ensuite.<br>
-        <strong>Révision :</strong> Chaque bus passe obligatoirement en révision après ses travaux (1 jour, 300€).<br><br>
-        Le nombre de bus de remplacement détermine combien de véhicules peuvent être traités en parallèle.
-    </p>
+<div class="info-box" style="max-width: 520px;">
+    <strong>Phase 1 — Technique</strong> : bus avec état technique &lt; 80%, du pire au meilleur.<br>
+    <strong>Phase 2 — Intérieur</strong> : bus avec état intérieur &lt; 80%, du pire au meilleur.<br>
+    <strong>Révision</strong> : obligatoire après chaque intervention (1 jour, 300 €).<br>
+    Le nombre de bus de remplacement détermine le parallélisme.
 </div>
 {% endblock %}

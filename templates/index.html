@@ -1,19 +1,19 @@
 {% extends "base.html" %}
-{% block title %}Accueil{% endblock %}
+{% block title %}Campagnes{% endblock %}
 {% block content %}
-<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <h1 class="page-title" style="margin-bottom: 0;">Campagnes</h1>
-    <a href="/campaigns/new" class="btn">+ Nouvelle campagne</a>
+<div class="page-header">
+    <h1 class="page-title">Campagnes</h1>
+    <a href="/campaigns/new" class="btn btn-primary">+ Nouveau planning</a>
 </div>
 
 {% if campaigns %}
-<table>
+<table class="campaign-list">
     <thead>
         <tr>
-            <th>Nom</th>
+            <th>Campagne</th>
             <th>Période</th>
-            <th>Interventions</th>
-            <th>Coût</th>
+            <th>Étapes</th>
+            <th>Budget</th>
             <th>Avancement</th>
             <th>Statut</th>
             <th></th>
@@ -25,16 +25,16 @@
         {% set total = (c.tasks|default([]))|length %}
         {% set pct = (done / total * 100)|int if total > 0 else 0 %}
         <tr>
-            <td><strong>{{ c.name }}</strong></td>
-            <td style="font-size: 0.8rem;">{{ c.start_date|default("—") }} → {{ c.end_date|default("—") }}</td>
-            <td>{{ total }}</td>
-            <td>{{ "{:,}".format(c.total_cost|default(0)).replace(",", " ") }} €</td>
+            <td><span class="campaign-name">{{ c.name }}</span></td>
+            <td><span class="campaign-dates">{{ c.start_date|default("—") }} → {{ c.end_date|default("—") }}</span></td>
+            <td><span class="mono">{{ total }}</span></td>
+            <td><span class="mono">{{ "{:,}".format(c.total_cost|default(0)).replace(",", " ") }} €</span></td>
             <td>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div class="bar-track" style="width: 100px;">
-                        <div class="bar-fill" style="width: {{ pct }}%; background: {% if pct == 100 %}var(--success){% elif pct > 50 %}var(--primary){% else %}var(--warning){% endif %};"></div>
+                <div class="mini-progress">
+                    <div class="mini-progress-track">
+                        <div class="mini-progress-fill {% if pct == 100 %}complete{% endif %}" style="width: {{ pct }}%;"></div>
                     </div>
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">{{ done }}/{{ total }}</span>
+                    <span class="mini-progress-text">{{ done }}/{{ total }}</span>
                 </div>
             </td>
             <td>
@@ -44,15 +44,15 @@
                 <span class="badge badge-warning">En cours</span>
                 {% endif %}
             </td>
-            <td><a href="/campaigns/{{ c.id }}" class="btn">Voir</a></td>
+            <td><a href="/campaigns/{{ c.id }}" class="btn btn-ghost btn-sm">Ouvrir</a></td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 {% else %}
-<div class="card" style="text-align: center; padding: 50px;">
-    <p style="color: var(--text-muted); margin-bottom: 15px;">Aucune campagne</p>
-    <a href="/campaigns/new" class="btn">Créer une campagne</a>
+<div class="empty-state">
+    <p>Aucune campagne de révision en cours</p>
+    <a href="/campaigns/new" class="btn btn-primary">Créer un planning</a>
 </div>
 {% endif %}
 {% endblock %}
