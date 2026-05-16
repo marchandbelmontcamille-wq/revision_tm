@@ -16,6 +16,9 @@
         <nav>
             <a href="/" class="{% if request.path == '/' %}active{% endif %}">Campagnes</a>
             <a href="/campaigns/new" class="{% if '/campaigns/new' in request.path %}active{% endif %}">Nouveau planning</a>
+            {% if '/campaigns/' in request.path and '/new' not in request.path %}
+            <a href="{{ request.path.split('/calendar')[0] }}/calendar" class="{% if '/calendar' in request.path %}active{% endif %}">Calendrier</a>
+            {% endif %}
         </nav>
         <div class="sidebar-footer">
             <a href="/logout">Déconnexion</a>

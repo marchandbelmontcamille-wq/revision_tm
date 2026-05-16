@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Calendrier — {{ campaign.name }}{% endblock %}
+{% block content %}
+<div class="breadcrumb"><a href="/">Campagnes</a> / <a href="/campaigns/{{ campaign.id }}">{{ campaign.name }}</a> / Calendrier</div>
+
+<div class="page-header">
+    <h1 class="page-title">Calendrier</h1>
+    <div style="display: flex; gap: 6px;">
+        <a href="/campaigns/{{ campaign.id }}/calendar?view=month&date={{ ref.isoformat() }}" class="btn {% if view == 'month' %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Mois</a>
+        <a href="/campaigns/{{ campaign.id }}/calendar?view=week&date={{ ref.isoformat() }}" class="btn {% if view == 'week' %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Semaine</a>
+        <a href="/campaigns/{{ campaign.id }}/calendar?view=day&date={{ ref.isoformat() }}" class="btn {% if view == 'day' %}btn-primary{% else %}btn-ghost{% endif %} btn-sm">Jour</a>
+    </div>
+</div>
+
+<!-- Navigation -->
+<div class="cal-nav">
+    <a href="/campaigns/{{ campaign.id }}/calendar?view={{ view }}&date={{ prev_date }}" class="btn btn-ghost btn-sm">&larr;</a>
+    <span class="cal-nav-title">
+        {% if view == "month" %}
+            {{ ref.strftime("%B %Y") }}
+        {% elif view == "week" %}
+            Semaine du {{ days[0].date.strftime("%d/%m") }} au {{ days[-1].date.strftime("%d/%m/%Y") }}
+        {% else %}
+            {{ ref.strftime("%A %d %B %Y") }}
+        {% endif %}
+    </span>
+    <a href="/campaigns/{{ campaign.id }}/calendar?view={{ view }}&date={{ next_date }}" class="btn btn-ghost btn-sm">&rarr;</a>
+</div>
+
+{% if view == "month" %}
+<!-- VUE MOIS -->
+<div class="cal-month">
+    <div class="cal-month-header">
+        <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+    </div>
+    <div class="cal-month-grid">
+        {% for _ in range(weekday_offset) %}
+        <div class="cal-cell cal-cell-empty"></div>
+        {% endfor %}
+        {% for day in days %}
+        <div class="cal-cell {% if day.tasks %}cal-cell-active{% endif %} {% if day.date == ref %}cal-cell-today{% endif %}">
+            <div class="cal-cell-date">{{ day.date.day }}</div>
+            {% for task in day.tasks[:3] %}
+            <div class="cal-event {% if task.action == 'Révision' %}ev-rev{% elif 'Technique' in task.phase %}ev-tech{% else %}ev-int{% endif %} {% if task.done %}ev-done{% endif %}">
+                <span class="cal-event-bus">{{ task.num_parc }}</span>
+                <span class="cal-event-action">{{ task.action[:12] }}</span>
+            </div>
+            {% endfor %}
+            {% if day.tasks|length > 3 %}
+            <div class="cal-event-more">+{{ day.tasks|length - 3 }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% elif view == "week" %}
+<!-- VUE SEMAINE -->
+<div class="cal-week">
+    {% for day in days %}
+    <div class="cal-week-day {% if day.date.weekday() >= 5 %}cal-weekend{% endif %}">
+        <div class="cal-week-day-header">
+            <span class="cal-week-day-name">{{ day.date.strftime("%a") }}</span>
+            <span class="cal-week-day-num">{{ day.date.day }}</span>
+        </div>
+        <div class="cal-week-day-body">
+            {% for task in day.tasks %}
+            <div class="cal-task-card {% if task.action == 'Révision' %}ev-rev{% elif 'Technique' in task.phase %}ev-tech{% else %}ev-int{% endif %} {% if task.done %}ev-done{% endif %}">
+                <div class="cal-task-top">
+                    <strong class="mono">{{ task.num_parc }}</strong>
+                    {% if task.done %}<span class="check done" style="width:14px;height:14px;font-size:0.5rem;">&#10003;</span>{% endif %}
+                </div>
+                <div class="cal-task-action">{{ task.action }}</div>
+                {% if task.etat_avant is not none %}
+                <div class="cal-task-meta">{{ task.etat_avant }}% → {{ task.etat_avant + task.gain }}%</div>
+                {% endif %}
+                <div class="cal-task-footer">
+                    <span>{{ task.replacement }}</span>
+                    <form method="post" action="/campaigns/{{ campaign.id }}/toggle/{{ task.index }}?back=calendar&view={{ view }}&date={{ ref.isoformat() }}" style="display:inline;">
+                        {% if task.done %}
+                        <button type="submit" class="btn btn-ghost btn-sm" style="padding:2px 6px;font-size:0.6rem;">Annuler</button>
+                        {% else %}
+                        <button type="submit" class="btn btn-success btn-sm" style="padding:2px 6px;font-size:0.6rem;">Fait</button>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not day.tasks %}
+            <div class="cal-empty-day">—</div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- VUE JOUR -->
+<div class="cal-day">
+    {% for day in days %}
+        {% if day.tasks %}
+        <div class="cal-day-list">
+            {% for task in day.tasks %}
+            <div class="cal-day-item {% if task.action == 'Révision' %}ev-rev{% elif 'Technique' in task.phase %}ev-tech{% else %}ev-int{% endif %} {% if task.done %}ev-done{% endif %}">
+                <div class="cal-day-item-left">
+                    <span class="check {% if task.done %}done{% endif %}">{% if task.done %}&#10003;{% endif %}</span>
+                    <div>
+                        <div class="cal-day-item-title">
+                            <strong class="mono">{{ task.num_parc }}</strong> — {{ task.action }}
+                        </div>
+                        <div class="cal-day-item-meta">
+                            {{ task.bus }}
+                            {% if task.etat_avant is not none %} | {{ task.etat_avant }}% → {{ task.etat_avant + task.gain }}%{% endif %}
+                        </div>
+                        <div class="cal-day-item-meta">
+                            Remplacé par <strong>{{ task.replacement }}</strong> | {{ task.days }}j | {{ "{:,}".format(task.cost).replace(",", " ") }} €
+                        </div>
+                    </div>
+                </div>
+                <form method="post" action="/campaigns/{{ campaign.id }}/toggle/{{ task.index }}?back=calendar&view={{ view }}&date={{ ref.isoformat() }}">
+                    {% if task.done %}
+                    <button type="submit" class="btn btn-ghost btn-sm">Annuler</button>
+                    {% else %}
+                    <button type="submit" class="btn btn-success btn-sm">Fait</button>
+                    {% endif %}
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state" style="padding: 40px;">
+            <p>Aucune intervention ce jour</p>
+        </div>
+        {% endif %}
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Légende -->
+<div class="gantt-legend" style="margin-top: 20px;">
+    <span><span class="dot dot-tech"></span> Réno technique</span>
+    <span><span class="dot dot-int"></span> Réno intérieure</span>
+    <span><span class="dot dot-rev"></span> Révision</span>
+</div>
+{% endblock %}

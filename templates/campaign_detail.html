@@ -71,66 +71,9 @@
     </div>
 </div>
 
-<!-- Tasks table -->
-<div class="panel">
-    <div class="panel-header">
-        <h3>Étapes du planning</h3>
-    </div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th style="width: 30px;"></th>
-                <th>Bus</th>
-                <th>Action</th>
-                <th>Début</th>
-                <th>Fin</th>
-                <th>Durée</th>
-                <th>Coût</th>
-                <th>Remplacé par</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            {% set current_phase = namespace(value="") %}
-            {% for task in campaign.tasks %}
-            {% if task.phase != current_phase.value %}
-            {% set current_phase.value = task.phase %}
-            <tr class="phase-separator">
-                <td colspan="9">{{ task.phase }}</td>
-            </tr>
-            {% endif %}
-            <tr class="{% if task.done %}done{% endif %}">
-                <td>
-                    <span class="check {% if task.done %}done{% endif %}">{% if task.done %}&#10003;{% endif %}</span>
-                </td>
-                <td><strong class="mono">{{ task.num_parc }}</strong></td>
-                <td>
-                    {% if task.action == "Révision" %}
-                    <span class="text-rev">{{ task.action }}</span>
-                    {% else %}
-                    <span>{{ task.action }}</span>
-                    {% if task.etat_avant is not none %}
-                    <br><small class="text-dim">{{ task.etat_avant }}% → {{ task.etat_avant + task.gain }}%</small>
-                    {% endif %}
-                    {% endif %}
-                </td>
-                <td><span class="mono text-dim">{{ task.start }}</span></td>
-                <td><span class="mono text-dim">{{ task.end }}</span></td>
-                <td><span class="mono">{{ task.days }}j</span></td>
-                <td><span class="mono">{{ "{:,}".format(task.cost).replace(",", " ") }} €</span></td>
-                <td><span class="text-dim">{{ task.replacement }}</span></td>
-                <td>
-                    <form method="post" action="/campaigns/{{ campaign.id }}/toggle/{{ loop.index0 }}" style="display: inline;">
-                        {% if task.done %}
-                        <button type="submit" class="btn btn-ghost btn-sm">Annuler</button>
-                        {% else %}
-                        <button type="submit" class="btn btn-success btn-sm">Fait</button>
-                        {% endif %}
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+<!-- Calendrier link -->
+<div class="panel" style="text-align: center; padding: 30px;">
+    <p style="color: var(--text-dim); margin-bottom: 14px;">Consultez le planning détaillé des interventions</p>
+    <a href="/campaigns/{{ campaign.id }}/calendar" class="btn btn-primary">Ouvrir le calendrier</a>
 </div>
 {% endblock %}

@@ -105,6 +105,84 @@ def campaign_detail(campaign_id):
                            done_count=done_count, total=total, progress=progress)
 
 
+@app.route("/campaigns/<int:campaign_id>/calendar")
+@login_required
+def campaign_calendar(campaign_id):
+    campaign = storage.get_campaign(campaign_id)
+    if not campaign:
+        return "Campagne non trouvée", 404
+
+    view = request.args.get("view", "month")
+    ref_date = request.args.get("date", "")
+    if ref_date:
+        ref = date.fromisoformat(ref_date)
+    else:
+        ref = date.fromisoformat(campaign["start_date"])
+
+    tasks = campaign["tasks"]
+
+    if view == "month":
+        import calendar
+        first_day = ref.replace(day=1)
+        _, days_in_month = calendar.monthrange(ref.year, ref.month)
+        last_day = ref.replace(day=days_in_month)
+        weekday_offset = first_day.weekday()
+
+        days = []
+        for i in range(days_in_month):
+            d = first_day + timedelta(days=i)
+            day_tasks = []
+            for idx, t in enumerate(tasks):
+                t_start = date.fromisoformat(t["start"])
+                t_end = date.fromisoformat(t["end"])
+                if t_start <= d < t_end:
+                    day_tasks.append({**t, "index": idx})
+            days.append({"date": d, "tasks": day_tasks})
+
+        prev_month = (first_day - timedelta(days=1)).replace(day=1)
+        next_month = (last_day + timedelta(days=1)).replace(day=1)
+
+        return render_template("calendar.html", campaign=campaign, view=view,
+                               days=days, weekday_offset=weekday_offset,
+                               ref=ref, prev_date=prev_month.isoformat(),
+                               next_date=next_month.isoformat())
+
+    elif view == "week":
+        week_start = ref - timedelta(days=ref.weekday())
+        days = []
+        for i in range(7):
+            d = week_start + timedelta(days=i)
+            day_tasks = []
+            for idx, t in enumerate(tasks):
+                t_start = date.fromisoformat(t["start"])
+                t_end = date.fromisoformat(t["end"])
+                if t_start <= d < t_end:
+                    day_tasks.append({**t, "index": idx})
+            days.append({"date": d, "tasks": day_tasks})
+
+        prev_week = (week_start - timedelta(days=7)).isoformat()
+        next_week = (week_start + timedelta(days=7)).isoformat()
+
+        return render_template("calendar.html", campaign=campaign, view=view,
+                               days=days, ref=ref,
+                               prev_date=prev_week, next_date=next_week)
+
+    else:  # day
+        day_tasks = []
+        for idx, t in enumerate(tasks):
+            t_start = date.fromisoformat(t["start"])
+            t_end = date.fromisoformat(t["end"])
+            if t_start <= ref < t_end:
+                day_tasks.append({**t, "index": idx})
+
+        prev_day = (ref - timedelta(days=1)).isoformat()
+        next_day = (ref + timedelta(days=1)).isoformat()
+
+        return render_template("calendar.html", campaign=campaign, view=view,
+                               days=[{"date": ref, "tasks": day_tasks}], ref=ref,
+                               prev_date=prev_day, next_date=next_day)
+
+
 @app.route("/campaigns/<int:campaign_id>/toggle/<int:task_index>", methods=["POST"])
 @login_required
 def campaign_toggle(campaign_id, task_index):
@@ -121,6 +199,9 @@ def campaign_toggle(campaign_id, task_index):
                 campaign["status"] = "active"
             break
     storage.save_campaigns(campaigns)
+    back = request.args.get("back", "")
+    if back == "calendar":
+        return redirect(url_for("campaign_calendar", campaign_id=campaign_id, view=request.args.get("view", "month"), date=request.args.get("date", "")))
     return redirect(url_for("campaign_detail", campaign_id=campaign_id))
 
 
