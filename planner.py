@@ -79,12 +79,12 @@ def generate_campaign(buses, name, start_date_str, nb_replacements, replacement_
     gantt_slots = [[] for _ in range(nb_replacements)]
     slots = [start] * nb_replacements
 
-    def schedule_bus(bus, reno, phase_label):
+    def schedule_bus(bus, reno, phase_label, with_revision=False):
         nonlocal slots
         slot_idx = slots.index(min(slots))
         replacement_name = replacement_names[slot_idx] if slot_idx < len(replacement_names) else f"Remplacement {slot_idx + 1}"
 
-        # Étape 1 : Rénovation
+        # Rénovation
         reno_start = slots[slot_idx]
         reno_end = reno_start + timedelta(days=reno["days"])
 
@@ -113,46 +113,51 @@ def generate_campaign(buses, name, start_date_str, nb_replacements, replacement_
             "phase": phase_label,
         })
 
-        # Étape 2 : Révision
-        rev_start = reno_end
-        rev_end = rev_start + timedelta(days=REVISION["days"])
+        end = reno_end
 
-        tasks.append({
-            "bus": f"{bus['num_parc']} - {bus['marque']} {bus['modele']}",
-            "num_parc": bus["num_parc"],
-            "phase": phase_label,
-            "action": "Révision",
-            "days": REVISION["days"],
-            "cost": REVISION["cost"],
-            "start": rev_start.isoformat(),
-            "end": rev_end.isoformat(),
-            "replacement": replacement_name,
-            "etat_avant": None,
-            "gain": None,
-            "done": False,
-            "done_date": None,
-        })
+        # Révision uniquement si demandée (phase 2)
+        if with_revision:
+            rev_start = reno_end
+            rev_end = rev_start + timedelta(days=REVISION["days"])
 
-        gantt_slots[slot_idx].append({
-            "bus": bus["num_parc"],
-            "label": f"{bus['num_parc']} — Révision",
-            "start": rev_start.isoformat(),
-            "end": rev_end.isoformat(),
-            "type": "revision",
-            "phase": phase_label,
-        })
+            tasks.append({
+                "bus": f"{bus['num_parc']} - {bus['marque']} {bus['modele']}",
+                "num_parc": bus["num_parc"],
+                "phase": phase_label,
+                "action": "Révision",
+                "days": REVISION["days"],
+                "cost": REVISION["cost"],
+                "start": rev_start.isoformat(),
+                "end": rev_end.isoformat(),
+                "replacement": replacement_name,
+                "etat_avant": None,
+                "gain": None,
+                "done": False,
+                "done_date": None,
+            })
 
-        slots[slot_idx] = rev_end
+            gantt_slots[slot_idx].append({
+                "bus": bus["num_parc"],
+                "label": f"{bus['num_parc']} — Révision",
+                "start": rev_start.isoformat(),
+                "end": rev_end.isoformat(),
+                "type": "revision",
+                "phase": phase_label,
+            })
+
+            end = rev_end
+
+        slots[slot_idx] = end
 
     for bus in phase1_buses:
         reno = choose_reno_technique(bus["etat_technique"])
         if reno:
-            schedule_bus(bus, reno, "Phase 1 — Technique")
+            schedule_bus(bus, reno, "Phase 1 — Technique", with_revision=False)
 
     for bus in phase2_buses:
         reno = choose_reno_interieur(bus["etat_interieur"])
         if reno:
-            schedule_bus(bus, reno, "Phase 2 — Intérieur")
+            schedule_bus(bus, reno, "Phase 2 — Intérieur", with_revision=True)
 
     total_cost = sum(t["cost"] for t in tasks)
     end_date = max(slots).isoformat() if slots else start.isoformat()
