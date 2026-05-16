@@ -57,7 +57,7 @@ def parse_csv(content):
     return buses
 
 
-def filter_buses_for_revision(buses, horizon_days):
+def get_buses_needing_revision(buses):
     today = date.today()
     result = []
     for bus in buses:
@@ -71,8 +71,7 @@ def filter_buses_for_revision(buses, horizon_days):
             result.append({**bus, "delta": None})
             continue
         delta = (d - today).days
-        if delta <= horizon_days:
-            result.append({**bus, "delta": delta})
+        result.append({**bus, "delta": delta})
     result.sort(key=lambda x: x["delta"] if x["delta"] is not None else -9999)
     return result
 
@@ -96,14 +95,13 @@ def index():
 def campaign_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
-        horizon = int(request.form.get("horizon", 90))
         file = request.files.get("csv_file")
         if not file:
             return "Fichier CSV requis", 400
 
         content = file.read().decode("utf-8")
         buses = parse_csv(content)
-        candidates = filter_buses_for_revision(buses, horizon)
+        candidates = get_buses_needing_revision(buses)
 
         if not name:
             name = f"Révision du {date.today().strftime('%d/%m/%Y')}"
@@ -112,7 +110,6 @@ def campaign_new():
             "id": int(datetime.now().timestamp()),
             "name": name,
             "created": date.today().isoformat(),
-            "horizon_days": horizon,
             "status": "active",
             "buses": [{
                 "num_parc": b["num_parc"],
