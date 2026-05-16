@@ -1,0 +1,23 @@
+{
+  "expo": {
+    "name": "TM Révisions",
+    "slug": "tm-revisions",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#0a0e14"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0a0e14"
+      },
+      "package": "com.tmrevisions.app",
+      "useNextNotificationsApi": true
+    },
+    "plugins": [
+      "expo-notifications"
+    ]
+  }
+}

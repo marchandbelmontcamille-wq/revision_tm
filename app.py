@@ -4,7 +4,7 @@ import json
 import os
 from datetime import datetime, date, timedelta
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import storage
 import planner
 
@@ -199,6 +199,108 @@ def campaign_delete(campaign_id):
     campaigns = [c for c in storage.load_campaigns() if c["id"] != campaign_id]
     storage.save_campaigns(campaigns)
     return redirect(url_for("index"))
+
+
+# ═══ API JSON ══════════════════════════════════════════════════════════
+
+def api_auth_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or auth[7:] != APP_PASSWORD:
+            return jsonify({"error": "Non autorisé"}), 401
+        return f(*args, **kwargs)
+    return decorated
+
+
+@app.route("/api/login", methods=["POST"])
+def api_login():
+    data = request.get_json(silent=True) or {}
+    if data.get("password") == APP_PASSWORD:
+        return jsonify({"token": APP_PASSWORD, "success": True})
+    return jsonify({"error": "Mot de passe incorrect", "success": False}), 401
+
+
+@app.route("/api/campaigns")
+@api_auth_required
+def api_campaigns():
+    campaigns = storage.load_campaigns()
+    campaigns.sort(key=lambda c: c["created"], reverse=True)
+    result = []
+    for c in campaigns:
+        done = sum(1 for t in c.get("tasks", []) if t["done"])
+        total = len(c.get("tasks", []))
+        result.append({
+            "id": c["id"],
+            "name": c["name"],
+            "created": c["created"],
+            "start_date": c.get("start_date"),
+            "end_date": c.get("end_date"),
+            "status": c["status"],
+            "total_cost": c.get("total_cost", 0),
+            "done_count": done,
+            "total_tasks": total,
+            "progress": int(done / total * 100) if total > 0 else 0,
+        })
+    return jsonify(result)
+
+
+@app.route("/api/campaigns/<int:campaign_id>")
+@api_auth_required
+def api_campaign_detail(campaign_id):
+    campaign = storage.get_campaign(campaign_id)
+    if not campaign:
+        return jsonify({"error": "Campagne non trouvée"}), 404
+    return jsonify(campaign)
+
+
+@app.route("/api/campaigns/<int:campaign_id>/tasks/today")
+@api_auth_required
+def api_tasks_today(campaign_id):
+    campaign = storage.get_campaign(campaign_id)
+    if not campaign:
+        return jsonify({"error": "Campagne non trouvée"}), 404
+    today_str = date.today().isoformat()
+    tasks_today = []
+    for idx, t in enumerate(campaign["tasks"]):
+        if t["start"] == today_str:
+            tasks_today.append({**t, "index": idx})
+    return jsonify(tasks_today)
+
+
+@app.route("/api/campaigns/<int:campaign_id>/tasks/upcoming")
+@api_auth_required
+def api_tasks_upcoming(campaign_id):
+    campaign = storage.get_campaign(campaign_id)
+    if not campaign:
+        return jsonify({"error": "Campagne non trouvée"}), 404
+    today = date.today()
+    upcoming = []
+    for idx, t in enumerate(campaign["tasks"]):
+        t_start = date.fromisoformat(t["start"])
+        if t_start >= today and not t["done"]:
+            upcoming.append({**t, "index": idx})
+    upcoming.sort(key=lambda x: x["start"])
+    return jsonify(upcoming)
+
+
+@app.route("/api/campaigns/<int:campaign_id>/toggle/<int:task_index>", methods=["POST"])
+@api_auth_required
+def api_toggle(campaign_id, task_index):
+    campaigns = storage.load_campaigns()
+    for campaign in campaigns:
+        if campaign["id"] == campaign_id:
+            if 0 <= task_index < len(campaign["tasks"]):
+                task = campaign["tasks"][task_index]
+                task["done"] = not task["done"]
+                task["done_date"] = date.today().isoformat() if task["done"] else None
+            if all(t["done"] for t in campaign["tasks"]):
+                campaign["status"] = "completed"
+            else:
+                campaign["status"] = "active"
+            break
+    storage.save_campaigns(campaigns)
+    return jsonify({"success": True})
 
 
 if __name__ == "__main__":
