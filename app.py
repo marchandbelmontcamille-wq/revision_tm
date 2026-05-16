@@ -121,6 +121,13 @@ def campaign_calendar(campaign_id):
 
     tasks = campaign["tasks"]
 
+    def tasks_starting_on(d):
+        result = []
+        for idx, t in enumerate(tasks):
+            if date.fromisoformat(t["start"]) == d:
+                result.append({**t, "index": idx})
+        return result
+
     if view == "month":
         import calendar
         first_day = ref.replace(day=1)
@@ -131,13 +138,7 @@ def campaign_calendar(campaign_id):
         days = []
         for i in range(days_in_month):
             d = first_day + timedelta(days=i)
-            day_tasks = []
-            for idx, t in enumerate(tasks):
-                t_start = date.fromisoformat(t["start"])
-                t_end = date.fromisoformat(t["end"])
-                if t_start <= d < t_end:
-                    day_tasks.append({**t, "index": idx})
-            days.append({"date": d, "tasks": day_tasks})
+            days.append({"date": d, "tasks": tasks_starting_on(d)})
 
         prev_month = (first_day - timedelta(days=1)).replace(day=1)
         next_month = (last_day + timedelta(days=1)).replace(day=1)
@@ -152,13 +153,7 @@ def campaign_calendar(campaign_id):
         days = []
         for i in range(7):
             d = week_start + timedelta(days=i)
-            day_tasks = []
-            for idx, t in enumerate(tasks):
-                t_start = date.fromisoformat(t["start"])
-                t_end = date.fromisoformat(t["end"])
-                if t_start <= d < t_end:
-                    day_tasks.append({**t, "index": idx})
-            days.append({"date": d, "tasks": day_tasks})
+            days.append({"date": d, "tasks": tasks_starting_on(d)})
 
         prev_week = (week_start - timedelta(days=7)).isoformat()
         next_week = (week_start + timedelta(days=7)).isoformat()
@@ -168,18 +163,11 @@ def campaign_calendar(campaign_id):
                                prev_date=prev_week, next_date=next_week)
 
     else:  # day
-        day_tasks = []
-        for idx, t in enumerate(tasks):
-            t_start = date.fromisoformat(t["start"])
-            t_end = date.fromisoformat(t["end"])
-            if t_start <= ref < t_end:
-                day_tasks.append({**t, "index": idx})
-
         prev_day = (ref - timedelta(days=1)).isoformat()
         next_day = (ref + timedelta(days=1)).isoformat()
 
         return render_template("calendar.html", campaign=campaign, view=view,
-                               days=[{"date": ref, "tasks": day_tasks}], ref=ref,
+                               days=[{"date": ref, "tasks": tasks_starting_on(ref)}], ref=ref,
                                prev_date=prev_day, next_date=next_day)
 
 
