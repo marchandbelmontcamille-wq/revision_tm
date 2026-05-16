@@ -21,14 +21,14 @@
     </thead>
     <tbody>
         {% for c in campaigns %}
-        {% set done = c.tasks|selectattr("done")|list|length %}
-        {% set total = c.tasks|length %}
+        {% set done = (c.tasks|default([]))|selectattr("done")|list|length %}
+        {% set total = (c.tasks|default([]))|length %}
         {% set pct = (done / total * 100)|int if total > 0 else 0 %}
         <tr>
             <td><strong>{{ c.name }}</strong></td>
-            <td style="font-size: 0.8rem;">{{ c.start_date }} → {{ c.end_date }}</td>
+            <td style="font-size: 0.8rem;">{{ c.start_date|default("—") }} → {{ c.end_date|default("—") }}</td>
             <td>{{ total }}</td>
-            <td>{{ "{:,}".format(c.total_cost).replace(",", " ") }} €</td>
+            <td>{{ "{:,}".format(c.total_cost|default(0)).replace(",", " ") }} €</td>
             <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div class="bar-track" style="width: 100px;">
