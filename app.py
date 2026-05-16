@@ -94,11 +94,12 @@ def campaign_detail(campaign_id):
     camp_start = date.fromisoformat(campaign["start_date"])
     camp_end = date.fromisoformat(campaign["end_date"])
     total_days = (camp_end - camp_start).days or 1
-    for item in campaign["gantt"]:
-        item_start = date.fromisoformat(item["start"])
-        item_end = date.fromisoformat(item["end"])
-        item["offset_pct"] = round((item_start - camp_start).days / total_days * 100, 1)
-        item["width_pct"] = max(1, round((item_end - item_start).days / total_days * 100, 1))
+    for slot in campaign["gantt"]:
+        for block in slot["blocks"]:
+            b_start = date.fromisoformat(block["start"])
+            b_end = date.fromisoformat(block["end"])
+            block["offset_pct"] = round((b_start - camp_start).days / total_days * 100, 1)
+            block["width_pct"] = max(1, round((b_end - b_start).days / total_days * 100, 1))
 
     return render_template("campaign_detail.html", campaign=campaign,
                            done_count=done_count, total=total, progress=progress)

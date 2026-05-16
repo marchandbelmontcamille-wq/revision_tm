@@ -15,7 +15,7 @@
 <div class="cards" style="margin-bottom: 20px;">
     <div class="card card-stat blue">
         <div class="value">{{ total }}</div>
-        <div class="label">Interventions</div>
+        <div class="label">Étapes</div>
     </div>
     <div class="card card-stat green">
         <div class="value">{{ done_count }}</div>
@@ -26,85 +26,100 @@
         <div class="label">Coût total</div>
     </div>
     <div class="card card-stat purple">
-        <div class="value">{{ campaign.start_date }} → {{ campaign.end_date }}</div>
-        <div class="label">Période</div>
+        <div class="value">{{ campaign.nb_replacements }}</div>
+        <div class="label">Bus de remplacement</div>
     </div>
 </div>
 
 <div class="card" style="margin-bottom: 25px; padding: 12px 20px;">
+    <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 5px;">
+        <span>{{ campaign.start_date }}</span>
+        <span>{{ progress }}%</span>
+        <span>{{ campaign.end_date }}</span>
+    </div>
     <div class="bar-track" style="height: 10px; border-radius: 5px;">
         <div class="bar-fill" style="width: {{ progress }}%; height: 100%; border-radius: 5px; background: {% if progress == 100 %}var(--success){% else %}var(--primary){% endif %};"></div>
     </div>
-    <div style="text-align: center; margin-top: 5px; font-size: 0.8rem; color: var(--text-muted);">{{ progress }}% terminé</div>
 </div>
 
-<!-- Gantt -->
+<!-- Gantt par bus de remplacement -->
 <div class="panel" style="margin-bottom: 25px; overflow-x: auto;">
-    <h3>Planning (Gantt)</h3>
-    {% set start_d = campaign.start_date %}
-    {% set end_d = campaign.end_date %}
-    <div class="gantt-container" style="position: relative; min-height: {{ campaign.gantt|length * 36 + 40 }}px; padding-top: 30px;">
-        {% set total_days = (campaign.end_date | replace("-","") | int - campaign.start_date | replace("-","") | int) %}
-        {% for item in campaign.gantt %}
-        <div class="gantt-row" style="display: flex; align-items: center; height: 30px; margin-bottom: 6px;">
-            <div style="width: 180px; font-size: 0.75rem; color: var(--text-muted); white-space: nowrap; overflow: hidden;">
-                {{ item.label }}
+    <h3>Planning — Diagramme de Gantt</h3>
+    {% for slot in campaign.gantt %}
+    <div style="margin-bottom: 12px;">
+        <div style="font-size: 0.8rem; font-weight: 600; margin-bottom: 4px; color: var(--text);">{{ slot.replacement }}</div>
+        <div style="position: relative; height: 28px; background: var(--surface2); border-radius: 4px; overflow: hidden;">
+            {% for block in slot.blocks %}
+            <div style="position: absolute; top: 2px; bottom: 2px; border-radius: 3px; left: {{ block.offset_pct }}%; width: {{ block.width_pct }}%; min-width: 3px; background: {% if block.type == 'revision' %}var(--success){% elif 'Technique' in block.phase %}var(--primary){% else %}var(--purple){% endif %}; display: flex; align-items: center; justify-content: center; overflow: hidden;" title="{{ block.label }} ({{ block.start }} → {{ block.end }})">
+                <span style="font-size: 0.6rem; color: white; white-space: nowrap; padding: 0 3px;">{{ block.bus }}</span>
             </div>
-            <div style="flex: 1; position: relative; height: 100%; background: var(--surface2); border-radius: 4px;">
-                <div style="position: absolute; height: 100%; border-radius: 4px; background: {% if 'Technique' in item.phase %}var(--primary){% else %}var(--purple){% endif %}; left: {{ item.offset_pct }}%; width: {{ item.width_pct }}%; min-width: 2px;" title="{{ item.start }} → {{ item.end }} ({{ item.replacement }})">
-                </div>
-            </div>
+            {% endfor %}
         </div>
-        {% endfor %}
     </div>
-    <div style="display: flex; gap: 15px; margin-top: 10px; font-size: 0.75rem;">
-        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--primary); border-radius: 2px;"></span> Phase 1 — Technique</span>
-        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--purple); border-radius: 2px;"></span> Phase 2 — Intérieur</span>
+    {% endfor %}
+    <div style="display: flex; gap: 15px; margin-top: 12px; font-size: 0.75rem; color: var(--text-muted);">
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--primary); border-radius: 2px; vertical-align: middle;"></span> Réno technique</span>
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--purple); border-radius: 2px; vertical-align: middle;"></span> Réno intérieure</span>
+        <span><span style="display: inline-block; width: 12px; height: 12px; background: var(--success); border-radius: 2px; vertical-align: middle;"></span> Révision</span>
     </div>
 </div>
 
-<!-- Calendrier / Liste des tâches -->
+<!-- Tableau des étapes -->
 <div class="panel">
-    <h3>Calendrier des interventions</h3>
+    <h3>Étapes</h3>
     <table>
         <thead>
             <tr>
+                <th></th>
                 <th>Bus</th>
-                <th>Phase</th>
-                <th>Intervention</th>
+                <th>Action</th>
                 <th>Début</th>
                 <th>Fin</th>
-                <th>Durée</th>
+                <th>Jours</th>
                 <th>Coût</th>
-                <th>Remplacement</th>
-                <th>Fait</th>
+                <th>Remplacé par</th>
                 <th></th>
             </tr>
         </thead>
         <tbody>
+            {% set current_phase = namespace(value="") %}
             {% for task in campaign.tasks %}
-            <tr style="{% if task.done %}opacity: 0.5;{% endif %}">
-                <td><strong>{{ task.num_parc }}</strong></td>
-                <td><span class="badge {% if 'Technique' in task.phase %}badge-blue{% else %}badge-purple{% endif %}">{{ "Tech" if "Technique" in task.phase else "Int" }}</span></td>
-                <td>{{ task.reno }}<br><small style="color: var(--text-muted);">+ Révision</small></td>
-                <td>{{ task.start }}</td>
-                <td>{{ task.end }}</td>
-                <td>{{ task.total_days }}j</td>
-                <td>{{ "{:,}".format(task.reno_cost + task.revision_cost).replace(",", " ") }} €</td>
-                <td>{{ task.replacement }}</td>
+            {% if task.phase != current_phase.value %}
+            {% set current_phase.value = task.phase %}
+            <tr>
+                <td colspan="9" style="background: var(--surface2); font-weight: 600; font-size: 0.85rem; padding: 8px 15px;">{{ task.phase }}</td>
+            </tr>
+            {% endif %}
+            <tr style="{% if task.done %}opacity: 0.4;{% endif %}">
                 <td>
                     {% if task.done %}
-                    <span class="badge badge-success">OUI</span>
+                    <span style="color: var(--success);">&#10003;</span>
                     {% else %}
-                    <span class="badge" style="background: var(--surface2); color: var(--text-muted);">NON</span>
+                    <span style="color: var(--surface2);">&#9675;</span>
                     {% endif %}
                 </td>
+                <td><strong>{{ task.num_parc }}</strong></td>
+                <td>
+                    {% if task.action == "Révision" %}
+                    <span style="color: var(--success);">{{ task.action }}</span>
+                    {% else %}
+                    {{ task.action }}
+                    {% if task.etat_avant is not none %}
+                    <br><small style="color: var(--text-muted);">{{ task.etat_avant }}% → {{ task.etat_avant + task.gain }}%</small>
+                    {% endif %}
+                    {% endif %}
+                </td>
+                <td>{{ task.start }}</td>
+                <td>{{ task.end }}</td>
+                <td>{{ task.days }}j</td>
+                <td>{{ "{:,}".format(task.cost).replace(",", " ") }} €</td>
+                <td>{{ task.replacement }}</td>
                 <td>
                     <form method="post" action="/campaigns/{{ campaign.id }}/toggle/{{ loop.index0 }}" style="display: inline;">
                         {% if task.done %}
-                        <button type="submit" class="btn" style="background: var(--surface2);">Annuler</button>
+                        <button type="submit" class="btn" style="background: var(--surface2); padding: 4px 10px;">Annuler</button>
                         {% else %}
-                        <button type="submit" class="btn" style="background: var(--success);">Fait</button>
+                        <button type="submit" class="btn" style="background: var(--success); padding: 4px 10px;">Fait</button>
                         {% endif %}
                     </form>
                 </td>
