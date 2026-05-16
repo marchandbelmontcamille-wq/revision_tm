@@ -36,3 +36,10 @@ def save_campaigns(campaigns):
     else:
         with open(_local_file, "w", encoding="utf-8") as f:
             json.dump(campaigns, f, ensure_ascii=False, indent=2)
+
+
+def get_campaign(campaign_id):
+    for c in load_campaigns():
+        if c["id"] == campaign_id:
+            return c
+    return None

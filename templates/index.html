@@ -2,7 +2,7 @@
 {% block title %}Accueil{% endblock %}
 {% block content %}
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-    <h1 class="page-title" style="margin-bottom: 0;">Campagnes de révision</h1>
+    <h1 class="page-title" style="margin-bottom: 0;">Campagnes</h1>
     <a href="/campaigns/new" class="btn">+ Nouvelle campagne</a>
 </div>
 
@@ -11,8 +11,9 @@
     <thead>
         <tr>
             <th>Nom</th>
-            <th>Créée le</th>
-            <th>Bus</th>
+            <th>Période</th>
+            <th>Interventions</th>
+            <th>Coût</th>
             <th>Avancement</th>
             <th>Statut</th>
             <th></th>
@@ -20,13 +21,14 @@
     </thead>
     <tbody>
         {% for c in campaigns %}
-        {% set done = c.buses|selectattr("done")|list|length %}
-        {% set total = c.buses|length %}
+        {% set done = c.tasks|selectattr("done")|list|length %}
+        {% set total = c.tasks|length %}
         {% set pct = (done / total * 100)|int if total > 0 else 0 %}
         <tr>
             <td><strong>{{ c.name }}</strong></td>
-            <td>{{ c.created }}</td>
+            <td style="font-size: 0.8rem;">{{ c.start_date }} → {{ c.end_date }}</td>
             <td>{{ total }}</td>
+            <td>{{ "{:,}".format(c.total_cost).replace(",", " ") }} €</td>
             <td>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <div class="bar-track" style="width: 100px;">
@@ -42,14 +44,14 @@
                 <span class="badge badge-warning">En cours</span>
                 {% endif %}
             </td>
-            <td><a href="/campaigns/{{ c.id }}" class="btn">Gérer</a></td>
+            <td><a href="/campaigns/{{ c.id }}" class="btn">Voir</a></td>
         </tr>
         {% endfor %}
     </tbody>
 </table>
 {% else %}
 <div class="card" style="text-align: center; padding: 50px;">
-    <p style="color: var(--text-muted); margin-bottom: 15px;">Aucune campagne de révision</p>
+    <p style="color: var(--text-muted); margin-bottom: 15px;">Aucune campagne</p>
     <a href="/campaigns/new" class="btn">Créer une campagne</a>
 </div>
 {% endif %}

@@ -204,6 +204,8 @@ a:hover { text-decoration: underline; }
 .badge-warning { background: var(--warning); color: black; }
 .badge-yellow { background: #eab308; color: black; }
 .badge-success { background: var(--success); color: white; }
+.badge-blue { background: var(--primary); color: white; }
+.badge-purple { background: var(--purple); color: white; }
 
 /* Table */
 .toolbar {

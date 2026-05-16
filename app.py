@@ -2,10 +2,11 @@ import csv
 import io
 import json
 import os
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session
 import storage
+import planner
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
@@ -32,50 +33,6 @@ def login():
     return render_template("login.html", error=error)
 
 
-def parse_csv(content):
-    reader = csv.reader(io.StringIO(content), delimiter=";", quotechar='"')
-    next(reader)
-    buses = []
-    for row in reader:
-        if len(row) < 17:
-            continue
-        rev_raw = row[16]
-        if not rev_raw or rev_raw == "Jamais" or rev_raw.startswith("30/11/-0001"):
-            rev_date = None
-        else:
-            try:
-                rev_date = datetime.strptime(rev_raw, "%d/%m/%Y").strftime("%Y-%m-%d")
-            except ValueError:
-                rev_date = None
-        buses.append({
-            "num_parc": row[1],
-            "marque": row[5],
-            "modele": row[6],
-            "type": row[7],
-            "revision": rev_date,
-        })
-    return buses
-
-
-def get_buses_needing_revision(buses):
-    today = date.today()
-    result = []
-    for bus in buses:
-        rev = bus["revision"]
-        if not rev:
-            result.append({**bus, "delta": None})
-            continue
-        try:
-            d = datetime.strptime(rev, "%Y-%m-%d").date()
-        except (ValueError, TypeError):
-            result.append({**bus, "delta": None})
-            continue
-        delta = (d - today).days
-        result.append({**bus, "delta": delta})
-    result.sort(key=lambda x: x["delta"] if x["delta"] is not None else -9999)
-    return result
-
-
 @app.route("/logout")
 def logout():
     session.pop("logged_in", None)
@@ -96,37 +53,29 @@ def campaign_new():
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         file = request.files.get("csv_file")
+        start_date = request.form.get("start_date", "")
+        replacement_buses = request.form.get("replacement_buses", "").strip()
+
         if not file:
             return "Fichier CSV requis", 400
 
         content = file.read().decode("utf-8")
-        buses = parse_csv(content)
-        candidates = get_buses_needing_revision(buses)
+        buses = planner.parse_csv(content)
 
         if not name:
-            name = f"Révision du {date.today().strftime('%d/%m/%Y')}"
+            name = f"Campagne du {date.today().strftime('%d/%m/%Y')}"
+        if not start_date:
+            start_date = date.today().isoformat()
 
-        campaign = {
-            "id": int(datetime.now().timestamp()),
-            "name": name,
-            "created": date.today().isoformat(),
-            "status": "active",
-            "buses": [{
-                "num_parc": b["num_parc"],
-                "marque": b["marque"],
-                "modele": b["modele"],
-                "type": b["type"],
-                "revision_prevue": b["revision"],
-                "delta": b["delta"],
-                "done": False,
-                "done_date": None
-            } for b in candidates]
-        }
+        replacements = [b.strip() for b in replacement_buses.split(",") if b.strip()]
+        nb_replacements = len(replacements) if replacements else 1
+
+        campaign = planner.generate_campaign(buses, name, start_date, nb_replacements, replacements)
 
         campaigns = storage.load_campaigns()
         campaigns.append(campaign)
         storage.save_campaigns(campaigns)
-        return redirect(url_for("index"))
+        return redirect(url_for("campaign_detail", campaign_id=campaign["id"]))
 
     return render_template("campaign_new.html")
 
@@ -134,29 +83,38 @@ def campaign_new():
 @app.route("/campaigns/<int:campaign_id>")
 @login_required
 def campaign_detail(campaign_id):
-    campaigns = storage.load_campaigns()
-    campaign = next((c for c in campaigns if c["id"] == campaign_id), None)
+    campaign = storage.get_campaign(campaign_id)
     if not campaign:
         return "Campagne non trouvée", 404
-    done_count = sum(1 for b in campaign["buses"] if b["done"])
-    total = len(campaign["buses"])
+    done_count = sum(1 for t in campaign["tasks"] if t["done"])
+    total = len(campaign["tasks"])
     progress = int(done_count / total * 100) if total > 0 else 0
+
+    # Calculer les positions pour le Gantt
+    camp_start = date.fromisoformat(campaign["start_date"])
+    camp_end = date.fromisoformat(campaign["end_date"])
+    total_days = (camp_end - camp_start).days or 1
+    for item in campaign["gantt"]:
+        item_start = date.fromisoformat(item["start"])
+        item_end = date.fromisoformat(item["end"])
+        item["offset_pct"] = round((item_start - camp_start).days / total_days * 100, 1)
+        item["width_pct"] = max(1, round((item_end - item_start).days / total_days * 100, 1))
+
     return render_template("campaign_detail.html", campaign=campaign,
                            done_count=done_count, total=total, progress=progress)
 
 
-@app.route("/campaigns/<int:campaign_id>/toggle/<num_parc>", methods=["POST"])
+@app.route("/campaigns/<int:campaign_id>/toggle/<int:task_index>", methods=["POST"])
 @login_required
-def campaign_toggle(campaign_id, num_parc):
+def campaign_toggle(campaign_id, task_index):
     campaigns = storage.load_campaigns()
     for campaign in campaigns:
         if campaign["id"] == campaign_id:
-            for entry in campaign["buses"]:
-                if entry["num_parc"] == num_parc:
-                    entry["done"] = not entry["done"]
-                    entry["done_date"] = date.today().isoformat() if entry["done"] else None
-                    break
-            if all(b["done"] for b in campaign["buses"]):
+            if 0 <= task_index < len(campaign["tasks"]):
+                task = campaign["tasks"][task_index]
+                task["done"] = not task["done"]
+                task["done_date"] = date.today().isoformat() if task["done"] else None
+            if all(t["done"] for t in campaign["tasks"]):
                 campaign["status"] = "completed"
             else:
                 campaign["status"] = "active"
