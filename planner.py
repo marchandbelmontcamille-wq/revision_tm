@@ -22,24 +22,38 @@ REVISION = {"name": "Révision", "days": 1, "cost": 300}
 
 def parse_csv(content):
     reader = csv.reader(io.StringIO(content), delimiter=";", quotechar='"')
-    next(reader)
+    header = [h.strip() for h in next(reader)]
+
+    def col(name):
+        for i, h in enumerate(header):
+            if name.lower() in h.lower():
+                return i
+        return None
+
+    idx_parc = col("Numéro Parc") or 1
+    idx_marque = col("Marque") or 5
+    idx_modele = col("Modèle") or 6
+    idx_type = col("Type") or 7
+    idx_tech = col("Etat technique")
+    idx_int = col("Etat interieur") or col("Etat intérieur")
+
     buses = []
     for row in reader:
-        if len(row) < 25:
+        if len(row) < max(idx_parc, idx_marque, idx_modele, idx_type) + 1:
             continue
         try:
-            etat_tech = int(row[23])
+            etat_tech = int(row[idx_tech]) if idx_tech is not None else 100
         except (ValueError, IndexError):
             etat_tech = 100
         try:
-            etat_int = int(row[24])
+            etat_int = int(row[idx_int]) if idx_int is not None else 100
         except (ValueError, IndexError):
             etat_int = 100
         buses.append({
-            "num_parc": row[1],
-            "marque": row[5],
-            "modele": row[6],
-            "type": row[7],
+            "num_parc": row[idx_parc],
+            "marque": row[idx_marque],
+            "modele": row[idx_modele],
+            "type": row[idx_type],
             "etat_technique": etat_tech,
             "etat_interieur": etat_int,
         })
